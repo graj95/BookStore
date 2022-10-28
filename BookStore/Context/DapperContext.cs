@@ -2,7 +2,8 @@
 using System.Data;
 
 namespace BookStore.Context
-{
+{ 
+
     public class DapperContext
     {
         private readonly IConfiguration _configuration;

@@ -14,5 +14,6 @@ namespace BookStore.Repository.Interface
 
         public Task<int> DeleteBookModel(int id);
 
+        public Task<BaseResponseStatus> GetAllBookModelPagination(int pageno, int pagesize, int? id, string? searchText);
     }
 }

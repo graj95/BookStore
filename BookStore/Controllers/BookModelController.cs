@@ -3,6 +3,7 @@ using BookStore.Repository;
 using BookStore.Repository.Interface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.SqlServer.Server;
 
 namespace BookStore.Controllers
@@ -99,5 +100,29 @@ namespace BookStore.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet("GetAllBookModelPagination")]
+        public async Task<ActionResult> GetAllBookModelPagination(int pageno, int pagesize, int? id, string? searchText)
+        {
+            BaseResponseStatus responseDetails = new BaseResponseStatus();
+            var booklist = await _bookModelRepositoty.GetAllBookModelPagination(pageno, pagesize, id, searchText);
+            List<BookModel> bookModels = (List<BookModel>)booklist.ResponseData1;
+            if (bookModels.Count == 0)
+            {
+                var returnmsg = string.Format("No records are available for BookModel");
+               
+                responseDetails.StatusCode = StatusCodes.Status404NotFound.ToString();
+                responseDetails.StatusMessage = returnmsg;
+                return Ok(responseDetails);
+            }
+            var rtnmsg = string.Format("All Booklist records are fetched successfully.");
+          
+            responseDetails.StatusCode = StatusCodes.Status200OK.ToString();
+            responseDetails.StatusMessage = rtnmsg;
+            responseDetails.ResponseData = booklist.ResponseData1;
+            responseDetails.ResponseData1 = booklist.ResponseData2;
+            return Ok(responseDetails);
+        }
+
     }
 }
