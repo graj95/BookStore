@@ -4,6 +4,7 @@ using BookStore.Repository.Interface;
 using Dapper;
 using System.Data;
 using System.Data.Common;
+using System.Xml.Linq;
 
 namespace BookStore.Repository
 {
@@ -30,11 +31,11 @@ namespace BookStore.Repository
             }
         }
 
-        public async Task<BaseResponseStatus> GetAllBookModelPagination(int pageno, int pagesize, int? id, string? searchText)
+        public async Task<BaseResponseStatus> GetAllBookModelPagination(int pageno, int pagesize,int id, string? searchText)
         {
             BaseResponseStatus baseResponse = new BaseResponseStatus();
-            PaginationModel pagination = new PaginationModel();
-            List<BookModel> booksList = new List<BookModel>();
+            PaginationModel pagination1 = new PaginationModel();
+            List<BookModel> books = new List<BookModel>();
             if (pageno == 0)
             {
                 pageno = 1;
@@ -43,88 +44,53 @@ namespace BookStore.Repository
             {
                 pagesize = 10;
             }
-            IEnumerable<BookModel> li;
             using (var Connection = _context.CreateConnection())
             {
-                string books;
-                
-                if (searchText == null && id==null)
-                {                    
+              
+                if (searchText == null)
+                {
                     searchText = "";
-                    li= await Connection.QueryAsync<BookModel>(@"
-                    select * from book");
                 }
-                else if (id != null && searchText==null)
-                {
-                    books = "";
-                    li = await Connection.QueryAsync<BookModel>(@"
-                    select * from book where id=@id", new { id });
-                }
-                else 
-                {
-                    li = await Connection.QueryAsync<BookModel>(@"
-                    select * from book where book_name like '%'+'@searchText'+'%'", new { searchText });
-
-                }
-                //else
-                //{
-                //    books = await Connection.QuerySingleAsync<string>(@"
-                //    select * from book where id=@id", new { id });
-
-                //}
-
-
-                var sql = (@"Select ROW_NUMBER() OVER(ORDER BY Id desc) as SrNo, Id,book_name,descriptions,publication_date,
-                                              CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDeleted from book
-                             where book_name like '%'+@searchText+'%' and descriptions like '%'+@searchText+'%' and IsDeleted=0 order by Id desc 
-                           OFFSET(@pageno - 1) * @pagesize ROWS FETCH NEXT @pagesize ROWS ONLY ; 
-                           select @pageno as PageNo, count(distinct Id) as TotalPages from book
-                           
-                             where book_name like '%'+@searchText+'%' and descriptions  like '%'+@searchText+'%' and IsDeleted=0
-                            ");
-                var result = await Connection.QueryMultipleAsync(sql, new { pageno = pageno, pagesize = pagesize, searchText = searchText });
-                var cList = await result.ReadAsync<BookModel>();
-                booksList = cList.ToList();
-                var paginations = await result.ReadAsync<PaginationModel>();
-                pagination = paginations.FirstOrDefault();
-
+               
+                var sql = (@"Select ROW_NUMBER() OVER(ORDER BY Id desc) as SrNo,Id,book_name,descriptions,publication_date,
+                            CreatedBy,CreatedDate,ModifiedBy,ModifiedDate,IsDeleted from book 
+                            where (book_name like '%'+@searchText+'%'  OR descriptions like '%'+@searchText+'%') AND (Id=@id or @id=0) AND IsDeleted=0 order by Id desc
+                           OFFSET(@pageno - 1) * @pagesize ROWS FETCH NEXT @pagesize ROWS ONLY; 
+                           select @pageno as PageNo, count(distinct Id) as TotalPages from book  
+                               where isDeleted=0");
+                var result = await Connection.QueryMultipleAsync(sql, new { pageno = pageno, pagesize = pagesize, searchText = searchText,id=id });
+                var dataList = await result.ReadAsync<BookModel>();
+                var pagination = await result.ReadAsync<PaginationModel>();
+                books = dataList.ToList();
+                pagination1 = pagination.FirstOrDefault();
                 int PageCount = 0;
                 int last = 0;
-
-
-                last = pagination.TotalPages % pagesize;
-                PageCount = pagination.TotalPages / pagesize;
-                pagination.PageCount = pagination.TotalPages;
-                pagination.TotalPages = PageCount;
-
-
+                last = pagination1.TotalPages % pagesize;
+                PageCount = pagination1.TotalPages / pagesize;
+                pagination1.PageCount = pagination1.TotalPages;
                 if (last > 0)
                 {
-                    pagination.TotalPages = PageCount + 1;
+                    pagination1.TotalPages = PageCount + 1;
                 }
-
-
-
-                baseResponse.ResponseData1 = li;
+                baseResponse.ResponseData1 = books;
                 baseResponse.ResponseData2 = pagination;
             }
             return baseResponse;
-        
-    }
+        }
 
-        public async  Task<IEnumerable<BookModel>> GetBookModels()
+      /*  public async Task<IEnumerable<BookModel>> GetBookModels()
         {
             List<BookModel> bookModels = new List<BookModel>();
             var query = "select ROW_NUMBER() OVER(ORDER BY Id desc) as SrNo, * from book";
 
-            using(var Connection = _context.CreateConnection())
+            using (var Connection = _context.CreateConnection())
             {
-                var regelt= await Connection.QueryAsync<BookModel>(query); 
-                bookModels= regelt.ToList();
+                var regelt = await Connection.QueryAsync<BookModel>(query);
+                bookModels = regelt.ToList();
 
                 return bookModels;
             }
-        }
+        }*/
 
         public async Task<int> SaveBookModel(BookModel bookModel)
         {

@@ -19,7 +19,7 @@ namespace BookStore.Controllers
             _bookModelRepositoty = bookModelRepositoty;
         }
 
-        [HttpGet]
+       /* [HttpGet]
         public async Task<IActionResult> GetAllBooks()
         {
             try
@@ -31,7 +31,7 @@ namespace BookStore.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
-        }
+        }*/
         [HttpPost]
 
         public async Task<IActionResult> SaveBookModel(BookModel bookModel)
@@ -102,11 +102,11 @@ namespace BookStore.Controllers
         }
 
         [HttpGet("GetAllBookModelPagination")]
-        public async Task<ActionResult> GetAllBookModelPagination(int pageno, int pagesize, int? id, string? searchText)
+        public async Task<ActionResult> GetAllBookModelPagination(int pageno, int pagesize, int id, string? searchText)
         {
             BaseResponseStatus responseDetails = new BaseResponseStatus();
             var booklist = await _bookModelRepositoty.GetAllBookModelPagination(pageno, pagesize, id, searchText);
-            List<BookModel> bookModels = (List<BookModel>)booklist.ResponseData1;
+           List<BookModel> bookModels = (List<BookModel>)booklist.ResponseData1;
             if (bookModels.Count == 0)
             {
                 var returnmsg = string.Format("No records are available for BookModel");
